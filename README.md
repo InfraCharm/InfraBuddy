@@ -10,9 +10,10 @@ InfraBuddy Resource Monitor does exactly that - monitors your system's hardware 
 
 ## Installation:
 1. Create the Directory: `sudo mkdir /etc/infrabuddy`
-2. Give Execute Permissions:`sudo chmod +x /etc/infrabuddy/infrabuddy`
-3. Create the Service File: `sudo nano /etc/systemd/system/infrabuddy.service`
-4. Paste into Service File: 
+2. Move infrabuddy executable and config.toml into directory.
+3. Give Execute Permissions:`sudo chmod +x /etc/infrabuddy/infrabuddy`
+4. Create the Service File: `sudo nano /etc/systemd/system/infrabuddy.service`
+5. Paste into Service File: 
 ```
 [Unit]
 Description=InfraBuddy Resource Monitor
