@@ -1,0 +1,76 @@
+# InfraBuddy Hardware Resource Monitor
+# Developed by InfraCharm LLC 
+# https://infracharm.com
+
+############################################
+#                                          #
+#            Discord Options               #
+#                                          #
+############################################
+
+webhook_url = ""
+embed_title = "My Server"
+embed_color = "#FFFFFF"
+# Do not go below 10s for updates. This will trigger the Discord rate limit.
+update_interval = "15s"
+update_previous_message = false
+message_id = "" # Right click first message in Discord and select "Copy Message ID". Paste into here.
+
+############################################
+#                                          #
+#            Resource Options              #
+#                                          #
+############################################
+
+show_memory = true
+memory_in_mb = false
+show_cpu = true
+
+############################################
+#                                          #
+#            Network Options               #
+#                                          #
+############################################
+
+show_network_usage = true
+# Network interfaces to include
+# Use '[]' (without the quotes) to display all interfaces
+network_interfaces = [""]
+
+############################################
+#                                          #
+#            Tagging Options               #
+#                                          #
+############################################
+
+user_tags_enabled = false
+user_tags = ["USER_OR_GROUP_ID"]
+
+############################################
+#                                          #
+#            Footer Options                #
+#                                          #
+############################################
+
+optional_message_enabled = true
+optional_message = "Thank you for using InfraBuddy!"
+
+############################################
+#                                          #
+#             Disk Options                 #
+#                                          #
+############################################
+
+show_disk_usage = true
+
+# Drives to monitor for disk usage
+disk_drives = [""]
+
+# Friendly names for disk drives
+[disk_names]
+"" = "NVMe SSD"
+
+[ssh_alerts]
+enabled = true
+log_path = "/var/log/auth.log"  # Update the path if different
+ssh_alert_webhook_url = ""
