@@ -1,3 +1,5 @@
+// Developed by InfraCharm LLC
+
 use reqwest::blocking::Client;
 use sysinfo::{System, SystemExt, ProcessorExt, NetworkExt};
 use humantime::parse_duration;
@@ -53,7 +55,6 @@ fn load_config() -> Config {
 
 impl Config {
     fn get_embed_color(&self) -> Result<u32, ParseIntError> {
-        // Convert hex color to u32
         u32::from_str_radix(&self.embed_color.trim_start_matches('#'), 16)
     }
 }
@@ -63,9 +64,9 @@ fn get_disk_usage(config: &Config) -> HashMap<String, (f64, f64)> {
 
     for drive in &config.disk_drives {
         let output = Command::new("df")
-            .arg("-B1")          // Output in bytes
-            .arg("-P")           // POSIX output format
-            .arg(&drive)        // Path to the disk drive
+            .arg("-B1")
+            .arg("-P")
+            .arg(&drive)
             .output()
             .expect("Failed to execute df command");
 
@@ -73,7 +74,6 @@ fn get_disk_usage(config: &Config) -> HashMap<String, (f64, f64)> {
             let output_str = String::from_utf8_lossy(&output.stdout);
             let mut lines = output_str.lines();
 
-            // Skip header
             lines.next();
 
             if let Some(line) = lines.next() {
@@ -105,28 +105,24 @@ fn bytes_to_mbps(bytes: u64) -> f64 {
 fn send_embed(config: &Config, system: &System) {
     let color = config.get_embed_color().unwrap_or_default();
 
-    // Get CPU usage percentage if configured to show
     let cpu_usage = if config.show_cpu {
         Some(system.get_global_processor_info().get_cpu_usage())
     } else {
         None
     };
 
-    // Get used memory in bytes if configured to show
     let used_memory_bytes = if config.show_memory {
         system.get_used_memory()
     } else {
         0
     };
 
-    // Convert used memory to gigabytes or megabytes based on configuration
     let used_memory = if config.memory_in_mb {
         bytes_to_gb(used_memory_bytes as f64)
     } else {
         bytes_to_mb(used_memory_bytes)
     };
 
-    // Get network usage in Mbps if configured to show
     let network_usage = if config.show_network_usage {
         let mut network_usage_str = String::new();
         for (name, interface) in system.get_networks() {
@@ -148,14 +144,12 @@ fn send_embed(config: &Config, system: &System) {
         None
     };
 
-    // Get disk usage if configured to show
     let disk_usage_map = if config.show_disk_usage {
         get_disk_usage(&config)
     } else {
         HashMap::new()
     };
 
-    // Create the payload with the embed and configurable options
     let mut payload = json!({
         "embeds": [{
             "title": &config.embed_title,
@@ -171,7 +165,6 @@ fn send_embed(config: &Config, system: &System) {
         },
     });
 
-    // Mention user tags based on boolean flag
     if config.user_tags_enabled {
         payload["embeds"][0]["fields"].as_array_mut().unwrap().push(json!({
             "name": "User Tags",
@@ -180,13 +173,11 @@ fn send_embed(config: &Config, system: &System) {
         }));
     }
 
-    // Mention optional message based on boolean flag
     if config.optional_message_enabled {
         payload["embeds"][0]["footer"]["text"] = serde_json::json!(config.optional_message);
     }
 
     for (drive, (used, available)) in disk_usage_map {
-        // Retrieve friendly name from disk_names hashmap if available, otherwise use the drive path
         let friendly_name = config.disk_names.get(&drive).unwrap_or(&drive);
         payload["embeds"][0]["fields"].as_array_mut().unwrap().push(json!({
             "name": format!("Disk Usage ({})", friendly_name),
@@ -195,7 +186,6 @@ fn send_embed(config: &Config, system: &System) {
         }));
     }
 
-    // Make a POST or PATCH request based on configuration to the webhook URL with the payload
     let client = reqwest::blocking::Client::new();
     let response = if config.update_previous_message {
         if let Some(id) = &config.message_id {
@@ -212,7 +202,6 @@ fn send_embed(config: &Config, system: &System) {
         .body(serde_json::to_string(&payload).expect("Failed to serialize JSON"))
         .send();
 
-    // Check if the request was successful
     match response {
         Ok(res) => {
             if res.status().is_success() {
@@ -233,7 +222,6 @@ fn send_embed(config: &Config, system: &System) {
 async fn main() {
     let config = Arc::new(load_config());
 
-    // Start the main loop for the program at the configured time
     let main_loop_interval = parse_duration(&config.update_interval)
         .expect("Failed to parse update interval from configuration");
 
@@ -242,42 +230,29 @@ async fn main() {
     tokio::spawn(async move {
         let mut system = System::new_all();
         loop {
-            // Update system information
             system.refresh_all();
 
-            // Send the embed with system information to the Discord Webook
             send_embed(&config_main_loop, &system);
 
-            // Sleep for the specified duration before updating again
             tokio_sleep(main_loop_interval).await;
         }
     });
 
-    // Shared state for tracking the last login details and timestamp
     let last_login_details = Arc::new(Mutex::new((None, 0)));
-
-    // Start monitoring SSH logins
     monitor_ssh_logins(&config, last_login_details);
-
-    // Keep the main thread alive
     loop {
         tokio::time::interval(Duration::from_secs(1)).tick().await;
     }
 }
 
 fn get_hwid() -> String {
-    // Run dmidecode command
     let output = Command::new("sh")
         .arg("-c")
         .arg("dmidecode | grep -w UUID | sed \"s/^.UUID\\: //g\"")
         .stdout(Stdio::piped())
         .output()
         .expect("Failed to execute dmidecode command");
-
-    // Convert output to String
     let hwid = String::from_utf8_lossy(&output.stdout).trim().to_string();
-
-    // If the command failed or didn't produce the expected output, you may want to handle it accordingly
     if !output.status.success() {
         eprintln!("Error running dmidecode command: {:?}", output.status);
     }
@@ -305,13 +280,11 @@ fn monitor_ssh_logins(config: &Arc<Config>, last_login_details: Arc<Mutex<(Optio
     for line in reader.lines() {
         if let Ok(line) = line {
             if line.contains("Accepted password for") || line.contains("Accepted publickey for") {
-                // Parse the login details from the log line
                 let details = parse_ssh_login_details(&line);
                 if let Some(details) = details {
                     let mut last_login = last_login_details.lock().unwrap();
                     let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
                     if *last_login != (Some(details.clone()), current_time) {
-                        // Check if the current login is within 2 seconds of the last reported login
                         if current_time - last_login.1 >= 2 {
                             send_ssh_login_embed(&config, details.clone());
                             *last_login = (Some(details), current_time);
@@ -324,7 +297,6 @@ fn monitor_ssh_logins(config: &Arc<Config>, last_login_details: Arc<Mutex<(Optio
 }
 
 fn parse_ssh_login_details(log_line: &str) -> Option<SshLoginDetails> {
-    // Example: Aug  7 22:57:09 au01 sshd[509435]: Accepted password for root from 70.161.159.124 port 55681 ssh2
     let parts: Vec<&str> = log_line.split_whitespace().collect();
     if parts.len() >= 11 {
         let time = format!("{} {} {}", parts[0], parts[1], parts[2]);
