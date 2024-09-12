@@ -1,6 +1,8 @@
 # InfraBuddy
 InfraBuddy Resource Monitor does exactly that - monitors your system's hardware usage and reports it back to you.
 
+### Please read the license associated to this repository. You are *required* to post any edits or changes.
+
 ## Hardware Monitoring
 ![image](https://github.com/user-attachments/assets/88189f41-02a1-4478-9ae6-d056bd094cb0)
 
